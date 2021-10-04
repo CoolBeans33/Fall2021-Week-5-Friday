@@ -11,6 +11,15 @@
         fill: none;
         stroke: rgb(204, 29, 29);
     }
+
+    svg {
+        width: 800px;
+        height: 600px;
+        display: block;
+        background: color #e5e5e5;;
+        margin:auto;
+
+    }
     </style>
 <body>
 <div style="width: 80%"></div>
@@ -20,16 +29,32 @@
        console.log(data)
 
        let formatted_data = data.map(d=>{
-        return {date: d['date'], estimated: +d['EstimatedCost'], raw: +d['RawMaterial'], work: +d['Workmanship'], yearly: +d['YearlyStorage']}
+        return {date: new Date(d['date']), estimated: +d['EstimatedCost'], 
+        raw: +d['RawMaterial'], work: +d['Workmanship'], 
+        yearly: +d['YearlyStorage']}
        })
-        console.log(formatted_data)
+        console.table(formatted_data)
 
         let svg = d3.select("body").append("svg")
-        var lineGenerator = d3.line();
-        var pathString = lineGenerator(formatted_data);
-        console.log(pathString)
-        d3.select('path')
-	        .attr('d', pathString);
+
+        const margin = 40;
+
+        const xScale = d3.scaleTime().domain(d3.extent(formatted_data, d=>d['date'])).range([0 + margin, 800-margin]);
+        const yScale = d3.scaleLinear().domain(d3.extent(formatted_data, d=>d['estimated'])).range([600 - margin, 0 + margin]);
+
+        svg.selectAll('marker')
+            .data(formatted_data)
+            .enter()
+            .append('circle')
+            .attr('cx', d=>xScale(d.date))
+            .attr('cy', d=>yScale(d.estimated))
+            .attr('r', 4)
+
+        const xAxis = d3.axisBottom().scale(xScale);
+        const yAxis = d3.axisLeft().scale(yScale);
+
+        svg.append("g").attr("transform", "translate(0, 600 - margin)").call(xAxis);
+        svg.append("g").call(yAxis);
     });
    
 
