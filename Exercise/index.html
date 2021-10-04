@@ -6,9 +6,32 @@
     <script src="../libs/d3/d3.min.js"></script>
 
 </head>
+<style>
+    path {
+        fill: none;
+        stroke: rgb(204, 29, 29);
+    }
+    </style>
 <body>
 <div style="width: 80%"></div>
 <script>
+   const url = "https://raw.githubusercontent.com/umassdgithub/Fall2021-Week-5-Friday/main/Exercise/data_sample.csv";
+   d3.csv(url).then(data=>{
+       console.log(data)
+
+       let formatted_data = data.map(d=>{
+        return {date: d['date'], estimated: +d['EstimatedCost'], raw: +d['RawMaterial'], work: +d['Workmanship'], yearly: +d['YearlyStorage']}
+       })
+        console.log(formatted_data)
+
+        let svg = d3.select("body").append("svg")
+        var lineGenerator = d3.line();
+        var pathString = lineGenerator(formatted_data);
+        console.log(pathString)
+        d3.select('path')
+	        .attr('d', pathString);
+    });
+   
 
 </script>
 </body>
