@@ -7,57 +7,128 @@
 
 </head>
 <style>
-    path {
-        fill: none;
-        stroke: rgb(204, 29, 29);
+    html,
+    body {
+      margin: 0;
     }
-
-    svg {
-        width: 800px;
-        height: 600px;
-        display: block;
-        background: color #e5e5e5;;
-        margin:auto;
-
+  
+    .line {
+      fill: none;
+      stroke-width: 3;
     }
-    </style>
+  </style>
 <body>
 <div style="width: 80%"></div>
+<svg id="chart"></svg>
 <script>
+    const margin = { top: 50, right: 50, bottom: 50, left: 100 },
+    width = window.innerWidth - margin.left - margin.right, // Use the window's width
+    height = window.innerHeight - margin.top - margin.bottom; // Use the window's height
+
    const url = "https://raw.githubusercontent.com/umassdgithub/Fall2021-Week-5-Friday/main/Exercise/data_sample.csv";
    d3.csv(url).then(data=>{
        console.log(data)
 
        let formatted_data = data.map(d=>{
-        return {date: new Date(d['date']), estimated: +d['EstimatedCost'], 
+        return {date: d['date'], estimated: +d['EstimatedCost'], 
         raw: +d['RawMaterial'], work: +d['Workmanship'], 
         yearly: +d['YearlyStorage']}
        })
-        console.table(formatted_data)
+        console.log(formatted_data)
 
-        let svg = d3.select("body").append("svg")
+        const dateFormat = d3.timeParse("%Y-%m");
+    const xScale = d3
+        .scaleTime()
+        .domain(d3.extent(formatted_data, d => dateFormat(d.date)))
+        .range([0, width]);
+    const yScale = d3
+        .scaleLinear()
+        .domain([
+        d3.min(formatted_data, d => d3.min([d.estimated, d.raw, d.work, d.yearly])),
+        d3.max(formatted_data, d => d3.max([d.estimated, d.raw, d.work, d.yearly]))
+    ]).range([height, 0]);
 
-        const margin = 40;
+    const line = d3
+    .line()
+    .x(d => xScale(d.date)) // set the x values for the line generator
+    .y(d => yScale(d.estimated)) // set the y values for the line generator
+    .curve(d3.curveMonotoneX); // apply smoothing to the line
 
-        const xScale = d3.scaleTime().domain(d3.extent(formatted_data, d=>d['date'])).range([0 + margin, 800-margin]);
-        const yScale = d3.scaleLinear().domain(d3.extent(formatted_data, d=>d['estimated'])).range([600 - margin, 0 + margin]);
+    console.log(line.xScale);
+    //setup svg
+    const svg = d3
+    .select("#chart")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-        svg.selectAll('marker')
-            .data(formatted_data)
-            .enter()
-            .append('circle')
-            .attr('cx', d=>xScale(d.date))
-            .attr('cy', d=>yScale(d.estimated))
-            .attr('r', 4)
+    //setup x and y axis
+    svg
+    .append("g")
+    .attr("class", "x axis")
+    .attr("transform", "translate(0," + height + ")")
+    .call(d3.axisBottom(xScale));
 
-        const xAxis = d3.axisBottom().scale(xScale);
-        const yAxis = d3.axisLeft().scale(yScale);
+    svg
+    .append("g")
+    .attr("class", "y axis")
+    .call(d3.axisLeft(yScale));
 
-        svg.append("g").attr("transform", "translate(0, 600 - margin)").call(xAxis);
-        svg.append("g").call(yAxis);
+    const colors = {
+        estimated: {
+            hex: "#00AFE5",
+            name: "Estimated Cost"
+        },
+        raw: {
+            hex: "#E5DA00",
+            name: "RawMaterial"
+        },
+        work: {
+            hex: "#DC0023",
+            name: "Workmanship"
+        },
+        year: {
+            hex: "#1234",
+            name: "YearlyStorage"
+        }
+    };
+    ["EstimatedCost", "RawMaterial", "Workmanship", "YearlyStorage"].forEach(type => {
+    const values = data.map(d => {
+        return {
+        value: d[type],
+        time: dateFormat(d.time)
+        };
     });
-   
 
+    svg
+    .append("path")
+        .datum(values)
+        .attr("class", "line")
+        .attr("d", line)
+        .attr("stroke", colors[type].hex);
+    });    
+    const legend = svg
+        .append("g")
+        .attr("class", "legend")
+        .attr("transform", `translate(50, 10)`)
+        .style("font-size", "12px");
+
+        Object.keys(colors).forEach((color, i) => {
+        legend
+            .append("text")
+            .attr("y", `${i}em`)
+            .attr("x", "1em")
+            .text(colors[color].name);
+
+        legend
+            .append("circle")
+            .attr("cy", `${i - 0.25}em`)
+            .attr("cx", 0)
+            .attr("r", "0.4em")
+            .attr("fill", colors[color].hex);
+        });
+    });
 </script>
 </body>
 </html>
